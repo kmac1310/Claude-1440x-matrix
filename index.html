@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1440X Calendar</title>
+    <style>
+        body {
+            background-color: black;
+            color: yellow;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        #clock-container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #clock {
+            position: relative;
+            width: 95vw;
+            height: 95vw;
+            max-width: 500px;
+            max-height: 500px;
+            border-radius: 50%;
+            border: 2px solid yellow;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+        }
+
+        .month {
+            position: absolute;
+            font-size: 3.5vw;
+            transform-origin: center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 5vw;
+            font-weight: bold;
+        }
+
+        .month.january {
+            color: #00FF41 !important;
+            text-shadow: 0 0 5px #00FF41;
+        }
+
+        #center-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 5vw;
+            width: 90%;
+        }
+
+        #center-text .highlight {
+            font-size: 7vw;
+            font-weight: bold;
+            color: red;
+            text-shadow: 0 0 10px red, 0 0 20px red;
+        }
+
+        #center-text .brand {
+            color: #00FF41;
+            text-shadow: 0 0 5px #00FF41;
+            font-weight: bold;
+        }
+
+        #year-minutes {
+            position: absolute;
+            top: 18%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-size: 2.8vw;
+            color: #00FF41;
+            text-shadow: 0 0 5px #00FF41;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 0.5vw 1vw;
+            border-radius: 1vw;
+            width: auto;
+            white-space: nowrap;
+        }
+
+        #date-display {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 5vw;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 1vw 2vw;
+            transition: color 0.3s;
+            color: #007FFF;
+            text-shadow: 0 0 5px #007FFF;
+        }
+
+        #year-display {
+            position: absolute;
+            top: -10vw;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 5vw;
+            color: #00FF41;
+            text-shadow: 0 0 5px #00FF41;
+        }
+
+        #time-display {
+            position: absolute;
+            top: 2vw;
+            right: 2vw;
+            font-size: 4vw;
+            color: #007FFF;
+            text-shadow: 0 0 5px #007FFF;
+        }
+
+        #day-hand {
+            position: absolute;
+            width: 0.6vw;
+            height: 40%;
+            background-color: red;
+            top: 10%;
+            left: 50%;
+            transform-origin: bottom center;
+            transition: transform 0.1s linear;
+        }
+
+        @media (min-width: 500px) {
+            .month { font-size: 18px; padding-top: 25px; }
+            #center-text { font-size: 24px; }
+            #center-text .highlight { font-size: 32px; }
+            #date-display { font-size: 25px; }
+            #year-display { font-size: 25px; top: -50px; }
+            #time-display { font-size: 20px; }
+            #day-hand { width: 3px; }
+            #year-minutes { font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-bg"></canvas>
+    <div id="clock-container">
+        <div id="clock">
+            <div id="year-display">1440X CALENDAR</div>
+            <div id="time-display"></div>
+            <div id="center-text"></div>
+            <div id="date-display"></div>
+            <div id="day-hand"></div>
+            <div id="year-minutes"></div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix rain effect
+        const canvas = document.getElementById('matrix-bg');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // Initialize canvas size and add resize listener
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Matrix characters (mix of numbers, letters, and special characters)
+        const matrixChars = '1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ1440:時間₿@#$%^&*';
+        const drops = [];
+        const fontSize = 16;  // Increased font size
+        const columns = canvas.width / fontSize;
+
+        // Initialize drops
+        for (let i = 0; i < columns; i++) {
+            drops[i] = Math.random() * -100;
+        }
+
+        function drawMatrix() {
+            // Semi-transparent black to create trail effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';  // Adjusted for better visibility
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Set the text style
+            ctx.font = fontSize + 'px monospace';
+
+            // Draw the characters
+            for (let i = 0; i < drops.length; i++) {
+                // Random character
+                const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+
+                // Randomly choose color between Matrix green and blue
+                const color = Math.random() < 0.8 ? '#00FF41' : '#007FFF';
+                const alpha = Math.random() * 0.5 + 0.5;  // Dynamic opacity
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = color;
+                
+                // Draw the character
+                ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+
+                // Reset drop back to top with random delay when it reaches bottom
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.99) {
+                    drops[i] = 0;
+                }
+
+                // Move drop down
+                drops[i]++;
+            }
+
+            requestAnimationFrame(drawMatrix);
+        }
+
+        // Clock functionality
+        function updateClock() {
+            const now = new Date();
+            const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+            const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+            
+            const minutesLeftToday = Math.floor((endOfDay - now) / 60000);
+            const minutesLeftInYear = Math.floor((endOfYear - now) / 60000);
+
+            document.getElementById('center-text').innerHTML = `
+                <span class="highlight">${minutesLeftToday}</span><br><span class="brand">1440X</span>
+            `;
+
+            document.getElementById('year-minutes').innerHTML = 
+                `${minutesLeftInYear.toLocaleString()}`;
+
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('date-display').textContent = `${months[now.getMonth()]} ${now.getDate()}`;
+
+            const millisInDay = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000 + now.getMilliseconds();
+            const rotation = (millisInDay / (24 * 60 * 60 * 1000)) * 360;
+            document.getElementById('day-hand').style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('time-display').textContent = timeString;
+
+            const monthElements = document.querySelectorAll('.month');
+            monthElements.forEach((element, index) => {
+                if (index === now.getMonth()) {
+                    element.style.color = index === 0 ? '#00FF41' : '#007FFF';
+                } else {
+                    element.style.color = index === 0 ? '#00FF41' : 'yellow';
+                }
+            });
+        }
+
+        function createClockFace() {
+            const clock = document.getElementById('clock');
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            months.forEach((month, index) => {
+                const monthElement = document.createElement('div');
+                monthElement.className = 'month' + (index === 0 ? ' january' : '');
+                monthElement.textContent = month;
+                monthElement.style.transform = `rotate(${index * 30}deg)`;
+                if (index === 0) {
+                    monthElement.style.textShadow = '0 0 5px #00FF41';
+                }
+                clock.appendChild(monthElement);
+            });
+        }
+
+        // Initialize everything
+        createClockFace();
+        updateClock();
+        setInterval(updateClock, 50);
+        drawMatrix();
+    </script>
+</body>
+</html>
